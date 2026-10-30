@@ -20,16 +20,24 @@ export default async (request) => {
 
   let upstream;
   try {
-    upstream = await fetch(SOURCE + path, { redirect: 'follow' });
+    // distrowatch.com answers 403 to requests that have no User-Agent or the default "node" one
+    upstream = await fetch(SOURCE + path, {
+      redirect: 'follow',
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; DistroHopper/1.0)' },
+    });
   } catch {
     return new Response('Upstream unavailable', { status: 502 });
   }
 
+  if (!upstream.ok) {
+    return new Response('distrowatch.com returned HTTP ' + upstream.status, { status: 502 });
+  }
+
   const headers = {
     'content-type': upstream.headers.get('content-type') || 'text/html; charset=utf-8',
-    'cache-control': upstream.ok ? route.cache : 'no-store',
+    'cache-control': route.cache,
   };
-  if (upstream.ok && route.cdn) {
+  if (route.cdn) {
     headers['netlify-cdn-cache-control'] = route.cdn;
   }
 
