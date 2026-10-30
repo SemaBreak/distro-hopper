@@ -198,17 +198,18 @@ async function load() {
     const distroId = (html.match(/gallery\.php\?distribution=([\w.-]+)/) || html.match(/distribution=([\w.-]+)/) || [])[1];
     const doc = new DOMParser().parseFromString(html, 'text/html');
 
-    // Read the full-size screenshot link before sanitize() strips all links
+    // Read the screenshot addresses before sanitize() strips links and rewrites image sources
     const shotLink = doc.querySelector('a[href*="images/slinks/"]');
+    const thumb = doc.querySelector('img[src*="images/slinks/"]');
     const fullSizeUrl = shotLink && imageUrl(shotLink.getAttribute('href'));
+    const thumbUrl = thumb && imageUrl(thumb.getAttribute('src'));
     sanitize(doc);
 
-    const img = doc.querySelector('img[src*="images/slinks/"]');
-    if (img) {
+    if (thumbUrl || fullSizeUrl) {
       const pic = document.createElement('img');
-      pic.src = fullSizeUrl || img.src;
+      pic.src = fullSizeUrl || thumbUrl;
       pic.alt = 'Screenshot';
-      pic.onerror = () => { pic.onerror = null; pic.src = img.src; };
+      pic.onerror = () => { pic.onerror = null; if (thumbUrl) pic.src = thumbUrl; };
       shot.replaceChildren(pic);
     } else {
       setMessage(shot, 'No screenshot available.');
